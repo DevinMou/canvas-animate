@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <style>
+    html,body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+    html {
+      font-size: 13.333333vh;
+    }
+    #app {
+      width: 100%;
+      height: 100%;
+      background: rgb(0 196 255 / 63%);
+      position: relative;
+    }
+    .restart,.videoPlay,.fullScreen {
+      position: absolute;
+      top: 1rem;
+      left: 50%;
+      z-index: 2;
+      transform: translateX(-4rem);
+      font-size: .32rem;
+      color: #fff;
+    }
+    .videoPlay {
+      top: 2rem;
+    }
+    .fullScreen {
+      top: 3rem;
+    }
+    #canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    #video {
+      object-fit: contain;
+      display: none;
+      max-width: 100%;
+      height: auto;
+      position: absolute;
+      z-index: 0;
+    }
+    .tv {
+      width: 7rem;
+      height: 5rem;
+      background: #fff;
+      position: absolute;
+      top: .5rem;
+      left: 50%;
+      transform: translateX(-1.5rem);
+    }
+    .tool {
+      height: 1rem;
+      width: 7rem;
+      position: absolute;
+      top: 6rem;
+      left: 50%;
+      transform: translateX(-1.5rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tool .move-block {
+      height: 1rem;
+      width: 1.2rem;
+      background: #fff;
+    }
+    .video-control {
+      position: absolute;
+      z-index: 3;
+      padding: .1rem 0;
+      bottom: 0;
+      width: 100%;
+      height: .4rem;
+      display: flex;
+      align-items: center;
+      transition: transform .3s;
+    }
+    .video-control.hidden {
+      transform: translateY(100%);
+    }
+    .video-control .play-pause {
+      width: .6rem;
+      height: .6rem;
+      position: relative;
+    }
+    .video-control .play-pause::before {
+      content: '';
+      position: absolute;
+      display: block;
+      width: .1rem;
+      height: .4rem;
+      background: white;
+      top: .1rem;
+      left: .15rem;
+    }
+    .video-control .play-pause::after {
+      content: '';
+      position: absolute;
+      display: block;
+      width: .1rem;
+      height: .4rem;
+      background: white;
+      top: .1rem;
+      right: .15rem;
+    }
+    .video-control .play-pause.pause::before {
+      all: unset;
+      content: '';
+      position: absolute;
+      display: block;
+      width: 0;
+      border-top: .2rem solid transparent;
+      border-bottom: .2rem solid transparent;
+      border-left: .3rem solid #ffffff;
+      height: 0;
+      top: .1rem;
+      left: .2rem;
+    }
+    .video-control .play-pause.pause::after {
+      all: unset;
+    }
+    .video-control .proccess {
+      flex: 1 1 auto;
+      height: .4rem;
+      border-radius: .2rem;
+      background: #ffffff;
+      margin: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .video-control .proccess .loaded {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      border-radius: .2rem;
+      background-color: #eee;
+      transform: translateX(-100%);
+    }
+    .video-control .proccess .current {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      border-radius: .2rem;
+      background-color: orange;
+      transform: translateX(-100%);
+    }
+    .video-control .timeout {
+      width: .8rem;
+      height: .6rem;
+      margin: 0 .1rem;
+      font-size: .28rem;
+      line-height: .6rem;
+      /* font-weight: bold; */
+      letter-spacing: 1px;
+      text-align: center;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      font-family: 'Helvetica Neue';
+    }
+    /* .video-control .volume {
+      width: .6rem;
+      height: .6rem;
+      margin: 0 .1rem;
+      color: #fff;
+      position: relative;
+    }
+    .volume-value {
+      position: absolute;
+      width: .5rem;
+      margin: 0 .05rem .1rem;
+      height: 3rem;
+      bottom: .6rem;
+      background: #666;
+      overflow: hidden;
+    }
+    .volume-value.hidden {
+      visibility: hidden;
+    }
+    .volume-bar {
+      position: absolute;
+      width: .1rem;
+      height: 2.5rem;
+      background: #eee;
+      top: .25rem;
+      left: .2rem;
+      overflow: hidden;
+    }
+    .volume-proccess {
+      width: 100%;
+      height: 100%;
+      background: #add8ff;
+      display: block;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      transform: translateY(-100%);
+    }
+    .volume-cricle {
+      position: absolute;
+      width: .1rem;
+      height: 2.5rem;
+      top: 2.75rem;
+      left: .2rem;
+      transform: translateY(-100%);
+    }
+    .volume-cricle::before {
+      content: ''; 
+      display: inline-block;
+      width: .3rem;
+      height: .3rem;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      left: -.1rem;
+      top: -.15rem;
+    } */
+  </style>
+</head>
+<body>
+  <div id="app">
+    <video webkit-playsinline playsinline id="video" preload="auto" controls></video>
+    <canvas id="canvas"></canvas>
+    <div class="restart">重新开始</div>
+    <div class="videoPlay">播放视频</div>
+    <div class="fullScreen" onclick="fullScreen()">开启全屏</div>
+    <div class="tv"></div>
+    <div class="tool">
+      <span class="move-block"></span>
+      <span class="move-block"></span>
+      <span class="move-block"></span>
+      <span class="move-block"></span>
+      <span class="move-block"></span>
+    </div>
+    <div class="video-control">
+      <span class="play-pause pause"></span>
+      <span class="proccess">
+        <span class="loaded"></span>
+        <span class="current"></span>
+      </span>
+      <span class="timeout">
+        00:00
+      </span>
+      <!-- <span class="volume">
+        <svg class="icon" style="width: .6rem;height: .6rem;vertical-align: middle;fill: currentColor;overflow: hidden;position: absolute;right: 0;bottom: 0;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3093"><path d="M462.06 142.1L284.12 320H80c-26.52 0-48 21.48-48 48v288c0 26.5 21.48 48 48 48h204.12l177.94 177.9c30.06 30.06 81.94 8.94 81.94-33.94V176.04c0-42.92-51.92-63.96-81.94-33.94zM992 512c0-127.06-64.12-243.88-171.54-312.48-22.38-14.28-52.06-7.64-66.24 14.92s-7.56 52.42 14.82 66.72C848.54 331.94 896 418.22 896 512s-47.46 180.06-126.96 230.84c-22.38 14.28-29 44.14-14.82 66.72 13.02 20.72 42.24 30.28 66.24 14.92C927.88 755.88 992 639.06 992 512z m-283.54-153.74c-23.16-12.66-52.38-4.32-65.22 18.9-12.78 23.22-4.32 52.4 18.9 65.22C687.96 456.56 704 483.26 704 512c0 28.76-16.04 55.44-41.84 69.62-23.22 12.82-31.68 42-18.9 65.22 12.86 23.32 42.1 31.6 65.22 18.9 56.46-31.1 91.54-90 91.54-153.76s-35.08-122.64-91.56-153.72z" p-id="3094"></path></svg>
+        <span class="volume-value hidden">
+          <span class="volume-bar">
+            <span class="volume-proccess"></span>
+          </span>
+          <span class="volume-cricle"></span>
+        </span>
+      </span> -->
+    </div>
+  </div>
+  <script>
+    Array.prototype.number = function () {
+      return this.map(item => -(-item))
+    }
+
+    Array.prototype.last = function () {
+      return this[this.length - 1]
+    }
+
+    Array.prototype.numSort = function () {
+      return this.sort((a, b) => a - b)
+    }
+    class Animate {
+      static check(){
+        if(Animate.ready.length&&!Animate.active){
+          Animate.active = true
+          window.requestAnimationFrame(Animate.done)
+        }
+      }
+      static done(time){
+        if(Animate.ready.length){
+          const ready = [...Animate.ready]
+          Animate.ready.length = 0
+          ready.forEach(item=>item.done(time))
+          Animate.active = false
+          Animate.check()
+        }
+      }
+      constructor(fn, direct) {
+        this.pool = []
+        this.fn = fn
+        this.active = false
+        this.running = false
+        this.direct = direct
+      }
+      push(payload) {
+        this.running = true
+        this.pool.push(payload)
+        this.check()
+      }
+      stop() {
+        this.running = false
+      }
+      check() {
+        if (this.pool.length && !this.active) {
+          if(!Animate.ready.includes(this)){
+            Animate.ready.push(this)
+          }
+          Animate.check()
+          // this.active = true
+          // window.requestAnimationFrame(this.done.bind(this))
+        }
+      }
+      done(time) {
+        const args = [...this.pool]
+        this.pool.length = 0
+        if (this.running) {
+          this.fn(this.direct ? args.last() : args,time)
+          this.active = false
+          this.check()
+        } else {
+          this.active = false
+        }
+
+      }
+    }
+    Animate.ready = []
+    Animate.active = false
+    class TouchEvent {
+      constructor($body) {
+        this.hub = new WeakMap()
+        this.touches = {}
+        this.lock = false
+        this.timer = null
+        this.$body = $body
+        this.outerHandles = []
+        $body.ontouchstart = this.startHandle.bind(this)
+        $body.ontouchend = this.endHandle.bind(this)
+        $body.ontouchmove = this.moveHandle.bind(this)
+        $body.ontouchcancel = this.cancelHandle.bind(this)
+      }
+      register(payload) {
+        const { el, ...events } = payload
+        const oldObj = this.hub.get(el) || { combo: 0, lastDate: null }
+        for (let eventName in events) {
+          const value = events[eventName]
+          if (eventName === 'click' || eventName === 'press') {
+            oldObj[eventName] = oldObj[eventName] || {}
+            oldObj[eventName][value[0]] = value.slice(1)
+          } else {
+            oldObj[eventName] = value
+          }
+        }
+        this.hub.set(el, oldObj)
+      }
+      startHandle(event) {
+        if (this.lock) {
+          return
+        }
+        event.preventDefault()
+        event.stopPropagation()
+        const nowDate = new Date().getTime()
+        Array.prototype.forEach.call(event.changedTouches, item => {
+          const { pageX, pageY, identifier, target } = item
+          if (!this.touches[identifier]) {
+            let events
+            let _target = target
+            while (!0) {
+              if (this.hub.has(_target)) {
+                events = this.hub.get(_target)
+                break
+              } else if (_target === document.documentElement) {
+                break
+              } else {
+                _target = _target.parentNode
+              }
+            }
+            if (events) {
+              const touch = { pageX: null, pageY: null, status: TouchEvent.STATUS_DOWN, events, startDate: new Date().getTime() }
+              if (touch.events.lastDate && nowDate - touch.events.lastDate >= TouchEvent.COMBO_DELAY) {
+                touch.events.combo = 0
+              }
+              touch.events.lastDate = nowDate
+              this.touches[identifier] = touch
+              if (events.start) {
+                events.start.bind(touch)(pageX, pageY)
+              }
+              if (events.press) {
+                const timeArr = Object.keys(events.press)
+                const _this = this
+                function timeFn() {
+                  if (timeArr.length) {
+                    const time = timeArr.shift()
+                    return setTimeout(() => {
+                      const [fn, bubble] = events.press[time]
+                      if (bubble) {
+                        _this.timer = timeFn()
+                      } else {
+                        _this.timer = null
+                      }
+                      fn()
+                    }, time)
+                  } else {
+                    return null
+                  }
+                }
+                this.timer = timeFn()
+              }
+            }else if(this.outerHandles){
+              this.outerHandles.forEach(item=>{
+                typeof item === 'function'&&item(pageX,pageY)
+              })
+            }
+          }
+        })
+      }
+      moveHandle(event) {
+        if (this.lock) {
+          return
+        }
+        // event.preventDefault()
+        event.stopPropagation()
+        if (this.timer !== null) {
+          clearTimeout(this.timer)
+        }
+        Array.prototype.forEach.call(event.changedTouches, item => {
+          const { pageX, pageY, identifier } = item
+          const touch = this.touches[identifier]
+          if (!touch) {
+            return
+          }
+          touch.status = TouchEvent.STATUS_MOVE
+          if (touch.events.move && touch.pageX !== null) {
+            touch.events.move.bind(touch)(pageX, pageY)
+          }
+          touch.pageX = pageX
+          touch.pageY = pageY
+        })
+      }
+      endHandle(event) {
+        if (this.lock) {
+          return
+        }
+        event.preventDefault()
+        event.stopPropagation()
+        if (this.timer !== null) {
+          clearTimeout(this.timer)
+        }
+        const nowDate = new Date().getTime()
+        Array.prototype.forEach.call(event.changedTouches, item => {
+          const { pageX, pageY, identifier } = item
+          const touch = this.touches[identifier]
+          if (!touch) {
+            return
+          }
+          const derDate = nowDate - touch.events.lastDate
+          let execed = false
+          if (touch.status === TouchEvent.STATUS_MOVE) {
+            touch.events.combo = 0
+          } else if (touch.status === TouchEvent.STATUS_DOWN) {
+            if (touch.events.combo === 0) {
+              if (derDate >= TouchEvent.COMBO_DELAY) {
+                /* const pressKey = touch.events.press && Object.keys(touch.events.press).numSort()
+                if (pressKey) {
+                  let tempDate = null
+                  for (let i = 0; i < pressKey.length; i++) {
+                    if (pressKey[i] > derDate) {
+                      break
+                    } else {
+                      tempDate = pressKey[i]
+                    }
+                  }
+                  if (tempDate !== null) {
+                    execed = true
+                    touch.events.press[tempDate].bind(touch)()
+                  }
+                } */
+              } else {
+                touch.events.combo += 1
+              }
+            } else {
+              if (derDate >= TouchEvent.COMBO_DELAY) {
+                touch.events.combo = 0
+              } else {
+                touch.events.combo += 1
+              }
+            }
+            if (touch.events.combo > 0 && touch.events.click && touch.events.click[touch.events.combo] && touch.events.click[touch.events.combo][0]) {
+              execed = true
+              touch.events.click[touch.events.combo][0].bind(touch)()
+            }
+          }
+          touch.events.lastDate = nowDate
+          if (touch.events.end && !execed) {
+            touch.events.end.bind(touch)(pageX, pageY)
+          }
+          delete this.touches[identifier]
+        })
+      }
+      cancelHandle(event) {
+        if (this.timer !== null) {
+          clearTimeout(this.timer)
+        }
+        console.log('cancel:', event)
+      }
+    }
+    TouchEvent.STATUS_DOWN = 0;
+    TouchEvent.STATUS_MOVE = 1;
+    TouchEvent.COMBO_DELAY = 500;
+    function translation(len, fn, time, r = 0) {
+      function dx(dt) {
+        return (2 * v - dt * a) * dt / 2
+      }
+      function rafCallBack(timestamp) {
+        !start && (start = timestamp)
+        const dt = timestamp - start
+        start = timestamp
+        if (dt) {
+          const dlen = dx(dt)
+          fn(dlen)
+          len -= dlen
+          time -= dt
+          v -= dt * a
+        }
+        if (time > dt) {
+          window.requestAnimationFrame(rafCallBack)
+        } else {
+          fn(len, true)
+          resolve()
+        }
+      }
+      const maxV = len / time
+      const v0 = (r > 1 ? 1 : r) * maxV
+      a = 2 * (maxV - v0) / time
+      let v = time * a / 2 + len / time
+      let start = null
+      let resolve
+      return new Promise(r => {
+        resolve = r
+        window.requestAnimationFrame(rafCallBack)
+      })
+    }
+    function ready(fn) {
+      document.addEventListener('DOMContentLoaded', function readyFn() {
+        document.removeEventListener('DOMContentLoaded', readyFn, false)
+        fn()
+      }, false)
+    }
+  </script>
+  <script>
+    let fnCallBack
+    document.body.onfullscreenchange = function (event) {
+      const isFullscreen = document.fullscreenElement === event.target
+      if(isFullscreen&&fnCallBack){
+        window.setTimeout(()=>{
+          fnCallBack(true)
+        },1000)
+      }
+    }
+    function loadVideo(src,handle){
+      return new Promise(resolve=>{
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET',src)
+        // xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+        xhr.responseType = 'blob'
+        xhr.onprogress = evt => {
+          handle&&evt.total&&handle((evt.loaded/evt.total*100).toFixed(2))
+        }
+        xhr.onload = e => {
+          xhr.readyState === 4 && xhr.status === 200 && resolve(xhr.response)
+        }
+        xhr.send()
+      })
+    }
+    
+    async function fullScreen() {
+      /* document.body.requestFullscreen()
+      await new Promise(resolve=>{
+        fnCallBack = e=>resolve(e)
+      }) */
+      ;(async function () {
+        const $app = document.getElementById('app')
+        const $video = document.getElementById('video')
+        // $video.src = location.origin+'/test/video/ojkzh.mp4'
+        // $video.src = 'http://vod.hualeme.com/sv/28c9dae-174ba3f5a88/28c9dae-174ba3f5a88.mp4?auth_key=1600914492-146d7ca50c4f4085958f2b13dd0d6f13-0-4b6f9e8e90d98d9f660076e214da9e8a'
+        // $video.src = 'http://vod.hualeme.com/1a7b2ea380a44672bec6cfa251f22b56/b8906c2b869b522c36cffe10fe3a0b60-hd-nbv1.mp4?auth_key=1600940396-4936faf4f2c74289b91776d3d30bda96-0-859dc1864a841e0a0f2e3dec1fcd9ab2'
+        
+        
+        const nodes = [{time:139.4}]
+        
+        
+        let videoProgress = '0'
+        let videoCurrent = '0'
+        let videoControlHidden = true
+        const $videoCtrol = document.querySelector('.video-control')
+        const $videoProccess = document.querySelector('.proccess')
+        const videoControlRect = $videoProccess.getBoundingClientRect()
+        const $videoLoaded = document.querySelector('.loaded')
+        const $videoCurrent = document.querySelector('.current')
+        const $videoPlayPause = document.querySelector('.play-pause')
+        // const $videoVolume = document.querySelector('.volume')
+        const loadedAnimate = new Animate(p=>{
+          $videoLoaded.style.transform = `translateX(-${100-p}%)`
+        },true)
+        const currentAnimate = new Animate(p=>{
+          $videoCurrent.style.transform = `translateX(-${100-p}%)`
+        },true)
+
+        const videoBlob = await loadVideo(location.origin+'/test/video/abcd.mp4',p=>loadedAnimate.push(p))
+        const videoUrl = window.URL.createObjectURL(videoBlob)
+        /* window.$b = new Blob([videoBlob],{type:'video/mp4'})
+        const videoUrl = window.URL.createObjectURL(window.$b)
+        const source = document.createElement('source')
+        $video.appendChild(source)
+        source.src = videoUrl
+        source.type = 'video/mp4' */
+        $video.src = videoUrl
+        URL.revokeObjectURL
+
+        $video.onprogress = e => {
+          const buffered = $video.buffered
+          if(buffered.length){
+            const progress = (buffered.end(buffered.length - 1)/$video.duration*100).toFixed(2)
+            if(videoProgress!==progress){
+              videoProgress = progress
+              loadedAnimate.push(progress)
+            }
+          }
+        }
+
+        function time2str(time){
+          time = time|0
+          const m = time/60|0
+          const s = time%60
+          return ('0'+m).slice(-2)+':'+('0'+s).slice(-2)
+        }
+        let timeStr = '00:00'
+        const $timeout = document.querySelector('.timeout')
+        $video.ondurationchange = () => {
+          if($video.duration){
+            const str = time2str($video.duration)
+            if(timeStr!==str){
+              timeStr = str
+              $timeout.textContent = timeStr
+            }
+          }
+        }
+
+        $video.onplaying = () => {
+          videoAnimate.push()
+        }
+
+        $video.onpause = () => {
+          if(videoControlHidden){
+            videoControlHidden = false
+            $videoCtrol.classList.remove('hidden')
+          }
+        }
+
+        $video.onended = () => {
+          $videoPlayPause.classList.add('pause')
+        }
+
+        $video.onseeked = () => {
+          console.log(558)
+          videoAnimate.push()
+        }
+
+        $video.ontimeupdate = () => {
+          if($video.duration){
+            console.log($video.currentTime)
+            const p = ($video.currentTime/$video.duration*100).toFixed(2)
+            if(videoCurrent!==p&&!onVideoControl){
+              videoCurrent = p
+              currentAnimate.push(p)
+            }
+            const str = time2str($video.duration - $video.currentTime)
+            if(timeStr!==str){
+              timeStr = str
+              $timeout.textContent = timeStr
+            }
+          }
+        }
+
+       /*  const $volume = document.querySelector('.volume-value')
+        const volumeRect = $volume.getBoundingClientRect()
+        const $volumeProccess = document.querySelector('.volume-proccess')
+        const $volumeCricle = document.querySelector('.volume-cricle') */
+
+        const $restart = document.querySelector('.restart')
+        const $videoPlay = document.querySelector('.videoPlay')
+        const $fullScreen = document.querySelector('.fullScreen')
+        const $canvas = document.getElementById('canvas')
+        const dpr = window.devicePixelRatio
+        const {width:tvWidth,height:tvHeight,top:tvTop,left:tvLeft} = document.querySelector('.tv').getBoundingClientRect()
+        $canvas.width = document.documentElement.offsetWidth*dpr
+        $canvas.height = document.documentElement.offsetHeight*dpr
+        const $ctx = $canvas.getContext('2d')
+        $ctx.scale(dpr,dpr)
+        const toolSite = []
+        document.querySelectorAll('.tool .move-block').forEach(item=>{
+          const {width,height,top,left} = item.getBoundingClientRect()
+          toolSite.push({width,height,top,left})
+        })
+        function createOffShape({width,height,index,type,params,color}) {
+          width = width|0
+          height = height|0
+          let $offCanvas = document.createElement('canvas')
+          if(type<4){
+            $offCanvas.width = width
+            $offCanvas.height = height
+            const $ctx = $offCanvas.getContext('2d')
+            $ctx.fillStyle = color
+            $ctx.beginPath()
+            switch(type){
+              case 0:
+                $ctx.arc(width/2,height/2,width/2,0,2*Math.PI)
+
+                break
+              case 3:
+                $ctx.moveTo(0,0)
+                $ctx.lineTo(width,0)
+                $ctx.lineTo(width/2,height)
+                $ctx.lineTo(0,0)
+                break
+            }
+            $ctx.closePath()
+            $ctx.fill()
+          }else if(type===4){
+            const _width = width
+            const _height = height
+            const _len = (_width**2+_height**2)**0.5
+            const a = params.rotation || 0
+            const sa = Math.abs(Math.sin(a))
+            const ca = Math.abs(Math.cos(a))
+            width = sa*_height+ca*_width
+            height = ca*_height+sa*_width
+            $offCanvas.width = width
+            $offCanvas.height = height
+            const $ctx = $offCanvas.getContext('2d')
+            $ctx.fillStyle = color
+            $ctx.translate(width/2,height/2)
+            $ctx.rotate(a)
+            $ctx.fillRect(-_width/2,-_height/2,_width,_height)
+          }else if(type===5){
+            const _width = width
+            width = +(_width*1.02).toFixed(0)
+            height = +(_width*1.105).toFixed(0)
+            $offCanvas.width = width
+            $offCanvas.height = height
+            const $ctx = $offCanvas.getContext('2d')
+            $ctx.fillStyle = color
+            const arr = ["M", 100, 63.4, "a", 50, 50, -103.1, 1, 1, -61.1, -52.6, "c", 20.3, -8.3, 36.1, -2.3, 52.2, -9.5, "c", -2.9, 17.7, 8.8, 30.5, 8.9, 62.1, "z"]
+            const noChange = [0,3,6,7,8,11,18,25]
+            const d = arr.map((item,index)=>{
+              if(noChange.includes(index)){
+                return item
+              }else{
+                return (item*_width/100).toFixed(1)
+              }
+            }).join(' ')
+            $ctx.fill(new Path2D(d))
+          }
+          
+          const rw = toolSite[index].width*0.8/width
+          const ry = toolSite[index].height*0.8/height
+          return {img:$offCanvas,scale:Math.min(rw,ry)}
+        }
+        const $props = {
+          yuan0:{x:47,y:40.5,index:1,...createOffShape({width:tvWidth/5,index:1,height:tvWidth/5,type:0,color:'pink'})},
+          yuan1:{x:50,y:33.5,index:1,...createOffShape({width:tvWidth/6,index:1,height:tvWidth/6,type:0,color:'yellow'})},
+          yuan2:{x:51,y:40.5,index:1,...createOffShape({width:tvWidth/5,index:1,height:tvWidth/5,type:0,color:'red'})},
+          san0:{x:49,y:69,index:0,...createOffShape({width:tvWidth/4,index:0,height:tvWidth*3/8,type:3,color:'orange'})},
+          fang0:{x:40,y:40,index:2,...createOffShape({width:tvWidth/16,index:2,height:tvWidth/10,type:4,params:{rotation:-Math.PI/6},color:'#774314'})},
+          fang1:{x:45,y:25,index:2,...createOffShape({width:tvWidth/16,index:2,height:tvWidth/10,type:4,params:{rotation:-Math.PI/6},color:'#774314'})},
+          di0:{x:45,y:35,index:3,...createOffShape({width:tvWidth/12,index:3,type:5,color:'rgb(0 196 255)'})},
+          tiao0:{x:60,y:35,index:4,...createOffShape({width:tvWidth/60,index:4,height:tvWidth/5,type:4,params:{rotation:Math.PI/6},color:'rgb(133 111 243)'})},
+          tiao1:{x:60,y:42,index:4,...createOffShape({width:tvWidth/60,index:4,height:tvWidth/8,type:4,params:{rotation:Math.PI/3},color:'rgb(133 111 243)'})}
+        }
+
+        let $drawData = {}
+        const $drawIndex = ['yuan1','yuan0','yuan2','fang0','fang1','san0','tiao0','tiao1','di0']
+        let $drawIndexSelf = []
+        const $drawNameTemp = [['san0'],['yuan0','yuan1','yuan2'],['fang0','fang1'],['di0'],['tiao0','tiao1']]
+        let $drawName = $drawNameTemp.map(item=>[...item])
+        function checkName(reset) {
+          if(reset){
+            $drawData = {}
+          }
+          $drawName.forEach((item,index)=>{
+            const name = item[0]
+            if(name in $props){
+              const props = $props[name]
+              const site = toolSite[index]
+              $drawData[name] = {
+                img:props.img,
+                type:index,
+                x:site.left+site.width/2,
+                y:site.top+site.height/2,
+                scale:props.scale
+              }
+            }
+          })
+        }
+        checkName()
+        function draw() {
+          // $ctx.clearRect(0,0,$canvas.width,$canvas.height)
+          const $arr = [...new Set([...$drawIndexSelf,...$drawIndex])]
+          $arr.forEach(key=>{
+            if(key in $drawData){
+              const item = $drawData[key]
+              const scale = item.scale
+              $ctx.drawImage(item.img,item.x-scale*item.img.width/2,item.y-scale*item.img.height/2,item.img.width*scale,item.img.height*scale)
+            }
+          })
+        }
+
+        const animate = new Animate(()=>{
+          draw()
+        },true)
+
+        const touch = new TouchEvent($app)
+        let activeName = null
+        let activeIndex = null
+
+        function getSite(pageX,pageY,rect){
+          if(pageX>rect.left&&pageX<rect.left+rect.width&&pageY>rect.top&&pageY<rect.top+rect.height){
+            return [(pageX-rect.left)/rect.width,(pageY-rect.top)/rect.height]
+          }else{
+            return false
+          }
+        }
+
+        touch.register({
+          el:$canvas,
+          start:(pageX,pageY)=>{
+            if(activeName)return
+            if(pageX>toolSite[0].left&&pageX<toolSite[4].left+toolSite[4].width&&pageY>toolSite[0].top&&pageY<toolSite[0].top+toolSite[0].height){
+              let index = null
+              for(let i=0;i<5;i++){
+                if(getSite(pageX,pageY,toolSite[i])){
+                  index = i
+                  break
+                }
+              }
+              if(index!==null&&$drawName[index].length){
+                activeIndex = index
+                activeName = $drawName[index][0]
+                const item = $drawData[activeName]
+                const ds = 1 - $props[activeName].scale
+                $drawIndexSelf.push(activeName)
+                translation(1,a=>{
+                  item.scale += a*ds
+                  animate.push()
+                },100,0.5)
+              }
+            }else{
+              if(videoControlHidden){
+                videoControlHidden = false
+                $videoCtrol.classList.remove('hidden')
+              /* }else if(!volumeHidden){
+                volumeHidden = true
+                $volume.classList.add('hidden') */
+              }else{
+                videoControlHidden = true
+                $videoCtrol.classList.add('hidden')
+              }
+            }
+          },
+          move:(pageX,pageY)=>{
+            if(activeName&&activeName in $drawData){
+              const item = $drawData[activeName]
+              item.x = pageX
+              item.y = pageY
+              animate.push()
+            }
+          },
+          end: (pageX,pageY)=>{
+            if(activeName){
+              const {x,y,index,scale} = $props[activeName]
+              const ax = tvLeft+tvWidth*x/100
+              const ay = tvTop+tvHeight*y/100
+              const len = ((pageX-ax)**2+(pageY-ay)**2)**0.5
+              const item = $drawData[activeName]
+              if(len<tvWidth/4){
+                const dx = ax - item.x
+                const dy = ay - item.y
+                translation(1,a=>{
+                  item.x += dx*a
+                  item.y += dy*a
+                  animate.push()
+                },300,0.5).then(()=>{
+                  $drawName[activeIndex].shift()
+                  checkName()
+                  activeName = null
+                })
+              }else{
+                const tool = toolSite[index]
+                const tx = tool.left+tool.width/2
+                const ty = tool.top+tool.height/2
+                const dx = item.x - tx
+                const dy = item.y - ty
+                const ds = 1 - scale
+                translation(1,a=>{
+                  item.x -= dx*a
+                  item.y -= dy*a
+                  item.scale -= ds*a
+                  animate.push()
+                },300,0.8).then(()=>{
+                  $drawIndexSelf.pop()
+                  activeName = null
+                })
+              }
+            }
+          }
+        })
+        draw()
+        touch.register({
+          el: $restart,
+          end: ()=>{
+            $drawName = $drawNameTemp.map(item=>[...item])
+            $drawIndexSelf = []
+            checkName(true)
+            draw()
+          }
+        })
+        let videoSize = null
+        const videoAnimate = new Animate(time=>{
+          if(!videoSize){
+            const {videoWidth:vw,videoHeight:vh} = $video
+            const cw = $canvas.width/dpr
+            const ch = $canvas.height/dpr
+            let nw,nh
+            if(vw/vh>cw/ch){
+              nw = cw
+              nh = vh/vw*nw
+            }else{
+              nh = ch
+              nw = vw/vh*nh
+            }
+            videoSize = [(cw-nw)/2,(ch-nh)/2,nw,nh]
+            console.log(videoSize)
+          }
+          if(time!==undefined){
+            $video.currentTime = time
+          }
+          $ctx.drawImage($video,...videoSize)
+          draw()
+          if(!$video.paused&&!$video.ended){
+            videoAnimate.push()
+          }
+        },true)
+        touch.register({
+          el: $videoPlay,
+          end: ()=>{
+            // $video.style.display = 'none'
+            $video.play()
+            let playing = false
+            $video.onplay = ()=>{
+              console.log(123)
+              if(!playing){
+                playing = true
+                videoAnimate.push()
+              }
+            }
+            $video.onloadeddata = ()=>{
+              console.log(222)
+            }
+            $video.ondurationchange = ()=>{
+              if(!playing){
+                playing = true
+                videoAnimate.push()
+              }
+              console.log(333)
+            }
+
+          }
+        })
+        let isFullscreen = false
+        document.body.onfullscreenchange = function (event) {
+          let elem = event.target
+          isFullscreen = document.fullscreenElement === elem
+
+        }
+        touch.register({
+          el: $fullScreen,
+          end: ()=>{
+            $video.currentTime = 300
+          }
+        })
+        touch.register({
+          el: $videoPlayPause,
+          end: ()=>{
+            if($video.paused){
+              $video.play()
+              $videoPlayPause.classList.remove('pause')
+              videoAnimate.push()
+            }else{
+              $video.pause()
+              $videoPlayPause.classList.add('pause')
+            }
+          }
+        })
+        let onVideoControl = false
+        let outLoaded = false
+
+        /* let volumeHidden = true
+        touch.register({
+          el: $videoVolume,
+          end: ()=>{
+            volumeHidden = !volumeHidden
+            if(volumeHidden){
+              $volume.classList.add('hidden')
+            }else{
+              $volume.classList.remove('hidden')
+            }
+          }
+        }) */
+
+        touch.register({
+          el: $videoProccess,
+          start:(pageX,pageY)=>{
+            const site = getSite(pageX,pageY,videoControlRect)
+            if(!site)return
+            const rx = site[0]
+            onVideoControl = true
+            if(rx*100>=+videoProgress){
+              outLoaded = true
+              return
+            }
+            outLoaded = false
+            currentAnimate.push((rx*100).toFixed(2))
+            videoAnimate.push(rx*$video.duration)
+            if(!$video.paused){
+              $video.pause()
+            }
+          },
+          move:(pageX,pageY)=>{
+            if(!onVideoControl)return
+            const site = getSite(pageX,pageY,videoControlRect)
+            if(!site)return
+            const rx = site[0]
+            if(rx*100<+videoProgress){
+              currentAnimate.push((rx*100).toFixed(2))
+              videoAnimate.push(rx*$video.duration)
+            }
+          },
+          end:()=>{
+            onVideoControl = false
+            if(![...$videoPlayPause.classList].includes('pause')){
+              $video.play()
+              $videoPlayPause.classList.remove('pause')
+              videoAnimate.push()
+            }
+          }
+        })
+        /* const volumeAnimate = new Animate(p=>{
+          const str = (p*100).toFixed(2)
+          $volumeProccess.style.transform = `translateY(-${str}%)`
+          $volumeCricle.style.transform = `translateY(-${str}%)`
+          $video.volume = +p.toFixed(2)
+        },true)
+        touch.register({
+          el: $volume,
+          start:(pageX,pageY)=>{
+            const site = getSite(pageX,pageY,volumeRect)
+            if(!site)return
+            const ry = 1 - site[1]
+            const progress = ry<1/12 ? 0 : ry>11/12 ? 1 : (12*ry-1)/10
+            volumeAnimate.push(progress)
+          },
+          move:(pageX,pageY)=>{
+            const site = getSite(pageX,pageY,volumeRect)
+            if(!site)return
+            const ry = 1 - site[1]
+            const progress = ry<1/12 ? 0 : ry>11/12 ? 1 : (12*ry-1)/10
+            volumeAnimate.push(progress)
+          }
+        })
+
+        touch.outerHandles.push((pageX,pageY)=>{
+          if(videoControlHidden){
+            videoControlHidden = false
+            $videoCtrol.classList.remove('hidden')
+          }else if(!volumeHidden){
+            volumeHidden = true
+            $volume.classList.add('hidden')
+          }else{
+            videoControlHidden = true
+            $videoCtrol.classList.add('hidden')
+          }
+        }) */
+      })()
+    }
+  </script>
+</body>
+</html>
